@@ -1,0 +1,7 @@
+{
+  "name": "DateSync",
+  "description": "A premium social discovery app powered by Gemini. Find the perfect meeting spot with your partner using intelligent matching and real-time location vibes.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
