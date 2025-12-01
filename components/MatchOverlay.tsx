@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Place, User } from '../types';
-import { MessageCircle, MapPin } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 interface MatchOverlayProps {
   partner: User;
@@ -41,7 +41,7 @@ const MatchOverlay: React.FC<MatchOverlayProps> = ({ partner, place, onStartChat
                 transition={{ type: 'spring', delay: 0.4 }}
                 className="absolute w-32 h-32 rounded-3xl border-4 border-white overflow-hidden shadow-2xl z-10"
             >
-                <img src={place.photoUrl} className="w-full h-full object-cover" />
+                <img src={place.photoUrl} alt={place.name} className="w-full h-full object-cover" />
             </motion.div>
 
             {/* Right Avatar (Partner) */}
@@ -51,7 +51,7 @@ const MatchOverlay: React.FC<MatchOverlayProps> = ({ partner, place, onStartChat
                 transition={{ type: 'spring', delay: 0.5 }}
                 className="absolute w-32 h-32 rounded-full border-4 border-gold-500 overflow-hidden shadow-2xl z-20"
             >
-                <img src={partner.photoUrl} className="w-full h-full object-cover" />
+                <img src={partner.photoUrl} alt={partner.name} className="w-full h-full object-cover" />
             </motion.div>
 
              {/* Connection Icon */}

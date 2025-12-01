@@ -1,55 +1,64 @@
 import { Place, User } from '../types';
 
-/**
- * Calculates a compatibility score (0-100) between a place and two users (current user + partner).
- * Considers:
- * 1. Vibe matching (does the place vibe match users' preferences?)
- * 2. Type matching (is it a preferred place type?)
- * 3. Distance (proximity to user)
- */
-export const calculateCompatibility = (place: Place, currentUser: User, partner: User): { score: number; matchReasons: string[] } => {
-  let score = 60; // Base score
+export const MATCH_CONFIG = {
+  BASE_SCORE: 60,
+  PERFECT_VIBE_BONUS: 25,
+  PARTIAL_VIBE_BONUS: 10,
+  TYPE_MATCH_BONUS: 10,
+  CLOSE_DISTANCE_BONUS: 5,
+  FAR_DISTANCE_PENALTY: 20,
+  HIGH_RATING_BONUS: 5,
+  HIGH_RATING_THRESHOLD: 4.7,
+  CLOSE_DISTANCE_KM: 1,
+  MATCH_THRESHOLD: 70,
+  MIN_SCORE: 0,
+  MAX_SCORE: 99,
+} as const;
+
+export const calculateCompatibility = (
+  place: Place,
+  currentUser: User,
+  partner: User
+): { score: number; matchReasons: string[] } => {
+  let score = MATCH_CONFIG.BASE_SCORE;
   const matchReasons: string[] = [];
 
-  // 1. Vibe Check
   const userLikesVibe = currentUser.preferences.vibes.includes(place.vibe);
   const partnerLikesVibe = partner.preferences.vibes.includes(place.vibe);
 
   if (userLikesVibe && partnerLikesVibe) {
-    score += 25;
+    score += MATCH_CONFIG.PERFECT_VIBE_BONUS;
     matchReasons.push('Perfect Vibe Match');
   } else if (userLikesVibe || partnerLikesVibe) {
-    score += 10;
+    score += MATCH_CONFIG.PARTIAL_VIBE_BONUS;
     if (userLikesVibe) matchReasons.push('You like this vibe');
     if (partnerLikesVibe) matchReasons.push(`${partner.name} likes this vibe`);
   }
 
-  // 2. Type Check
   const userLikesType = currentUser.preferences.placeTypes.includes(place.type);
   const partnerLikesType = partner.preferences.placeTypes.includes(place.type);
 
   if (userLikesType || partnerLikesType) {
-    score += 10;
+    score += MATCH_CONFIG.TYPE_MATCH_BONUS;
   }
 
-  // 3. Distance Logic (Simplified using lat/lng difference)
-  // Approx: 0.01 deg lat/lng is ~1.1km
   const distLat = Math.abs(place.lat - currentUser.location.lat);
   const distLng = Math.abs(place.lng - currentUser.location.lng);
   const roughDistKm = Math.sqrt(distLat * distLat + distLng * distLng) * 111;
 
-  if (roughDistKm < 1) {
-    score += 5;
+  if (roughDistKm < MATCH_CONFIG.CLOSE_DISTANCE_KM) {
+    score += MATCH_CONFIG.CLOSE_DISTANCE_BONUS;
     matchReasons.push('Very Close');
   } else if (roughDistKm > currentUser.preferences.maxDistance) {
-    score -= 20;
+    score -= MATCH_CONFIG.FAR_DISTANCE_PENALTY;
   }
 
-  // 4. Rating Boost
-  if (place.rating > 4.7) score += 5;
+  if (place.rating > MATCH_CONFIG.HIGH_RATING_THRESHOLD) {
+    score += MATCH_CONFIG.HIGH_RATING_BONUS;
+  }
 
   return {
-    score: Math.min(Math.max(score, 0), 99), // Clamp between 0 and 99
-    matchReasons
+    score: Math.min(Math.max(score, MATCH_CONFIG.MIN_SCORE), MATCH_CONFIG.MAX_SCORE),
+    matchReasons,
   };
 };
