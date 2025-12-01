@@ -1,4 +1,5 @@
 
+
 export enum ViewState {
   HOME = 'HOME',
   SWIPE = 'SWIPE',
@@ -26,6 +27,17 @@ export interface User {
   country?: string;
 }
 
+export interface MenuItem {
+  name: string;
+  price: string;
+  description?: string;
+}
+
+export interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
+
 export interface Place {
   id: string;
   name: string;
@@ -39,6 +51,13 @@ export interface Place {
   lat: number;
   lng: number;
   features: string[];
+  // New Details
+  menu?: MenuSection[];
+  isOpen?: boolean;
+  busyLevel?: 'Quiet' | 'Moderate' | 'Busy' | 'Very Busy';
+  openTime?: string;
+  closeTime?: string;
+  address?: string;
 }
 
 export interface ChatMessage {

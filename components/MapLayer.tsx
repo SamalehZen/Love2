@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef } from 'react';
 import { MAP_STYLE_DARK } from '../constants';
 import { User, Place } from '../types';
@@ -15,6 +16,7 @@ interface MapLayerProps {
   users?: User[];
   places?: Place[];
   selectedUser?: User;
+  selectedPlace?: Place;
   onUserSelect?: (user: User) => void;
   onMapClick?: () => void;
   onPlaceSelect?: (place: Place) => void;
@@ -26,6 +28,7 @@ const MapLayer: React.FC<MapLayerProps> = ({
   users = [],
   places = [],
   selectedUser,
+  selectedPlace,
   onUserSelect,
   onMapClick,
   onPlaceSelect
@@ -100,10 +103,12 @@ const MapLayer: React.FC<MapLayerProps> = ({
     markersRef.current = [];
 
     const bounds = L.latLngBounds();
+    let hasPoints = false;
 
     // Add new user markers
     users.forEach(user => {
       bounds.extend([user.location.lat, user.location.lng]);
+      hasPoints = true;
 
       const isSelected = selectedUser?.id === user.id;
 
@@ -144,19 +149,28 @@ const MapLayer: React.FC<MapLayerProps> = ({
       markersRef.current.push(marker);
     });
 
-    // Intelligent Camera Movement (Fly to Users)
-    if (users.length > 0 && users !== prevUsersRef.current && !selectedUser) {
-        map.flyToBounds(bounds, {
-            paddingTopLeft: [50, 140],
-            paddingBottomRight: [50, 50],
-            maxZoom: 14,
-            duration: 1.5,
-            easeLinearity: 0.25
+    // Intelligent Camera Movement (Fly to Users AND Places if Home view)
+    // If no user/place is selected, fit bounds to show users + places to give a full view
+    if (!selectedUser && !selectedPlace) {
+        // Also extend bounds to include places so they are visible on load
+        places.forEach(place => {
+            bounds.extend([place.lat, place.lng]);
+            hasPoints = true;
         });
+
+        if (hasPoints) {
+             map.flyToBounds(bounds, {
+                paddingTopLeft: [50, 140],
+                paddingBottomRight: [50, 50],
+                maxZoom: 15,
+                duration: 1.5,
+                easeLinearity: 0.25
+            });
+        }
     }
     prevUsersRef.current = users;
 
-  }, [users, selectedUser, onUserSelect]);
+  }, [users, places, selectedUser, selectedPlace, onUserSelect]);
 
   // Update Place Markers (Venues)
   useEffect(() => {
@@ -170,23 +184,26 @@ const MapLayer: React.FC<MapLayerProps> = ({
 
     // Add place markers
     places.forEach(place => {
+       const isSelected = selectedPlace?.id === place.id;
+       
        const placeIconHtml = `
-         <div class="relative w-full h-full group">
-            <div class="absolute inset-0 bg-gold-500 rounded-full border-2 border-black flex items-center justify-center shadow-lg transition-transform group-hover:scale-125">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-black">
+         <div class="relative w-full h-full group ${isSelected ? 'scale-125 z-50' : 'z-0'} transition-transform duration-500">
+            <div class="absolute inset-0 ${isSelected ? 'bg-white border-gold-500' : 'bg-gold-500 border-black'} rounded-full border-2 flex items-center justify-center shadow-lg transition-transform group-hover:scale-125">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="${isSelected ? 'text-gold-500' : 'text-black'}">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                  </svg>
             </div>
             
-            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black px-2 py-0.5 rounded-md text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-md pointer-events-none">
+            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black px-2 py-0.5 rounded-md text-[10px] font-bold ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity whitespace-nowrap shadow-md pointer-events-none z-50">
                 ${place.name}
             </div>
+            ${isSelected ? `<div class="absolute inset-0 rounded-full border border-white animate-ping opacity-30"></div>` : ''}
          </div>
        `;
 
        const icon = L.divIcon({
-          className: 'custom-place-marker z-0',
+          className: 'custom-place-marker',
           html: placeIconHtml,
           iconSize: [28, 28],
           iconAnchor: [14, 14]
@@ -202,7 +219,7 @@ const MapLayer: React.FC<MapLayerProps> = ({
        placeMarkersRef.current.push(marker);
     });
 
-  }, [places, onPlaceSelect]);
+  }, [places, selectedPlace, onPlaceSelect]);
 
   // Smooth FlyTo Animation on User Select
   useEffect(() => {
@@ -218,6 +235,21 @@ const MapLayer: React.FC<MapLayerProps> = ({
         );
      }
   }, [selectedUser]);
+
+   // Smooth FlyTo Animation on Place Select
+  useEffect(() => {
+     if (selectedPlace && mapInstance.current) {
+        mapInstance.current.flyTo(
+            [selectedPlace.lat, selectedPlace.lng], 
+            17,
+            { 
+                animate: true, 
+                duration: 1.2,
+                easeLinearity: 0.2
+            }
+        );
+     }
+  }, [selectedPlace]);
 
   return (
     <div ref={mapRef} className={`w-full h-full absolute inset-0 z-0 ${className || ''}`} />
